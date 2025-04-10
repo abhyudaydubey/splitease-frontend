@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { createGroup } from '../utils/api.util';
+import { toast } from 'react-toastify';
+import { decodeToken } from '../utils/tokenDecoder';
 
 interface CreateGroupModalProps {
   isOpen: boolean;
@@ -10,19 +12,25 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ isOpen, onClose }) 
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      await createGroup({ name, members: [], description });
-      alert('Group created successfully!');
+      const id = await decodeToken(localStorage.getItem('token') || '');
+      if (!id) throw new Error('Invalid token');
+      setUserId(id)
+      if (!userId) throw new Error('User ID not found');
+
+      await createGroup({ name: name.trim(), description: description.trim() || '', userId });
+      toast.success('Group created successfully!');
       setName('');
       setDescription('');
       onClose();
     } catch (error) {
-      alert('Failed to create group.');
+      toast.error('Failed to create group');
       console.error(error);
     } finally {
       setLoading(false);

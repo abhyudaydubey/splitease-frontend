@@ -57,12 +57,22 @@ export const addFriend = async (friendEmail: string) => {
   return await api.post('/friends/add', { email: friendEmail });
 };
 
-export const createGroup = async (groupData: {
+//Create Group
+export const createGroup = async ({
+  name,
+  description,
+  userId,
+}: {
   name: string;
-  members: string[];
-  description?: string;
+  description: string;
+  userId: string;
 }) => {
-  return await api.post('/groups/create', groupData);
+  const response = await axios.post(`${BASE_URL}/auth/create-group`, {
+    name,
+    description,
+    userId,
+  });
+  return response.data;
 };
 
 export const fetchDashboardData = async () => {

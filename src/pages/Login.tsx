@@ -2,7 +2,13 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { loginUser } from '../utils/api.util';
 import { toast } from 'react-toastify';
+import { jwtDecode } from 'jwt-decode';
 
+interface DecodedToken {
+  userId: string;
+  iat: number;
+  exp: number;
+}
 function Login() {
   const navigate = useNavigate();
 
@@ -22,10 +28,8 @@ function Login() {
     try {
       setLoading(true);
       const response = await loginUser({ email, password });
+      localStorage.setItem('token', response.token);
       toast.success(response.message || 'Login successful');
-
-      // You might want to store token in localStorage later
-      // localStorage.setItem('token', response.token);
 
       navigate('/dashboard');
     } catch (err: any) {

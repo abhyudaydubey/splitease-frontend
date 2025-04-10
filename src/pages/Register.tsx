@@ -3,7 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { registerUser } from '../utils/api.util';
+import { jwtDecode } from 'jwt-decode';
 
+interface DecodedToken {
+  userId: string;
+  iat: number;
+  exp: number;
+}
 function Register() {
   const [fullName, setFullName] = React.useState('');
   const [username, setUsername] = React.useState('');
@@ -26,6 +32,9 @@ function Register() {
     setIsSubmitting(true);
     try {
       const response = await registerUser({ username, email, password });
+      localStorage.setItem('token', response.token);
+      const decoded: DecodedToken = jwtDecode(response.token);
+      localStorage.setItem('userId', decoded.userId);
       toast.success(response.message || 'Registered successfully!');
       setTimeout(() => {
         navigate('/welcome');
