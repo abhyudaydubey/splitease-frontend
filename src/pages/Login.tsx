@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { loginUser } from '../utils/api.util';
-import { toast } from 'react-toastify';
-import { jwtDecode } from 'jwt-decode';
+import { toast } from 'react-hot-toast';
+import { useAuth } from '../contexts/AuthContext';
 
 interface DecodedToken {
   userId: string;
@@ -11,6 +11,7 @@ interface DecodedToken {
 }
 function Login() {
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -28,9 +29,11 @@ function Login() {
     try {
       setLoading(true);
       const response = await loginUser({ email, password });
-      localStorage.setItem('token', response.token);
+      
+      // Use the login method from auth context
+      login(response.token);
+      
       toast.success(response.message || 'Login successful');
-
       navigate('/dashboard');
     } catch (err: any) {
       console.error(err);

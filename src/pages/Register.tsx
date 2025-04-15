@@ -1,15 +1,9 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import { toast } from 'react-hot-toast';
 import { registerUser } from '../utils/api.util';
-import { jwtDecode } from 'jwt-decode';
+import { useAuth } from '../contexts/AuthContext';
 
-interface DecodedToken {
-  userId: string;
-  iat: number;
-  exp: number;
-}
 function Register() {
   const [fullName, setFullName] = React.useState('');
   const [username, setUsername] = React.useState('');
@@ -19,6 +13,7 @@ function Register() {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -32,9 +27,10 @@ function Register() {
     setIsSubmitting(true);
     try {
       const response = await registerUser({ username, email, password });
-      localStorage.setItem('token', response.token);
-      const decoded: DecodedToken = jwtDecode(response.token);
-      localStorage.setItem('userId', decoded.userId);
+      
+      // Use the login method from auth context
+      login(response.token);
+      
       toast.success(response.message || 'Registered successfully!');
       setTimeout(() => {
         navigate('/welcome');
