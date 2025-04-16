@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { createGroup } from '../utils/api.util';
-import { toast } from 'react-toastify';
-import { decodeToken } from '../utils/tokenDecoder';
+import { toast } from 'react-hot-toast';
+import { useAuth } from '../contexts/AuthContext';
 
 interface CreateGroupModalProps {
   isOpen: boolean;
@@ -12,26 +12,42 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ isOpen, onClose }) 
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
-  const [userId, setUserId] = useState<string | null>(null);
+  const { userId } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!name.trim()) {
+      toast.error('Group name is required');
+      return;
+    }
+    
+    if (!userId) {
+      toast.error('You must be logged in to create a group');
+      return;
+    }
+    
     setLoading(true);
 
     try {
-      const id = await decodeToken(localStorage.getItem('token') || '');
-      if (!id) throw new Error('Invalid token');
-      setUserId(id)
-      if (!userId) throw new Error('User ID not found');
-
-      await createGroup({ name: name.trim(), description: description.trim() || '', userId });
+      const result = await createGroup({ 
+        name: name.trim(), 
+        description: description.trim() || '', 
+        userId 
+      });
+      
+      if (!result.success) {
+        toast.error(result.error || 'Failed to create group');
+        return;
+      }
+      
       toast.success('Group created successfully!');
       setName('');
       setDescription('');
       onClose();
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Error creating group:', error);
       toast.error('Failed to create group');
-      console.error(error);
     } finally {
       setLoading(false);
     }

@@ -3,15 +3,14 @@ import { createRoot } from 'react-dom/client';
 import './app.css';
 import App from './App.tsx';
 
-// ✨ Import ToastContainer
-import { ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+// Import Toaster from react-hot-toast
+import { Toaster } from 'react-hot-toast';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <>
       <App />
-      <ToastContainer position="top-right" autoClose={3000} />
+      <Toaster position="top-right" toastOptions={{ duration: 3000 }} />
     </>
   </StrictMode>
 );

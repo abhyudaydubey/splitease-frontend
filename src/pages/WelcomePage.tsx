@@ -1,41 +1,62 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import CreateGroupModal from '../components/CreateGroupModal'; // ✅ Import reusable modal
+import debounce from 'lodash.debounce';
+import { toast } from 'react-hot-toast';
+
+import CreateGroupModal from '../components/CreateGroupModal';
+import AddFriendModal from '../components/AddFriendModal';
+import { searchUsers, sendFriendRequest } from '../utils/api.util';
+import { useAuth } from '../contexts/AuthContext';
 
 const WelcomePage: React.FC = () => {
   const navigate = useNavigate();
+  const { userId } = useAuth();
 
   const [showAddFriend, setShowAddFriend] = useState(false);
   const [showCreateGroup, setShowCreateGroup] = useState(false);
-  const [friendInput, setFriendInput] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchError, setSearchError] = useState('');
   const [groupId, setGroupId] = useState<string | null>(null);
   const [newMember, setNewMember] = useState('');
 
-  const handleAddFriend = async () => {
-    try {
-      await axios.post('/api/add-friend', { identifier: friendInput });
-      setShowAddFriend(false);
-      setFriendInput('');
-    } catch (error) {
-      console.error(error);
-    }
-  };
+  const debouncedSearch = useCallback(
+    debounce(async (query: string) => {
+      if (!query) {
+        setSearchResults([]);
+        return;
+      }
 
-  const handleAddMember = async () => {
-    if (!groupId) return;
-    try {
-      await axios.post('/api/add-member', { groupId, member: newMember });
-      setNewMember('');
-    } catch (error) {
-      console.error(error);
-    }
-  };
+      setSearchLoading(true);
+      setSearchError('');
+
+      try {
+        const users = await searchUsers(query);
+        setSearchResults(users.filter((u: any) => u.id !== userId));
+      } catch (err) {
+        setSearchError('Failed to search users');
+        setSearchResults([]);
+      } finally {
+        setSearchLoading(false);
+      }
+    }, 500),
+    [userId]
+  );
+
+  useEffect(() => {
+    debouncedSearch(searchQuery);
+  }, [searchQuery, debouncedSearch]);
 
   const handleSkip = () => {
     localStorage.setItem('hasOnboarded', 'true');
     navigate('/dashboard');
+  };
+
+  const handleAddMember = async () => {
+    if (!groupId || !newMember) return;
+    // TODO: Add to group logic
   };
 
   return (
@@ -55,7 +76,7 @@ const WelcomePage: React.FC = () => {
         transition={{ delay: 0.3, duration: 0.6 }}
         className="text-gray-600 mb-10 text-center max-w-md"
       >
-        Let’s get you started in 3 simple steps.
+        Let's get you started in 3 simple steps.
       </motion.p>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -104,7 +125,7 @@ const WelcomePage: React.FC = () => {
         >
           <div className="text-3xl mb-2">✅</div>
           <h2 className="text-xl font-semibold text-gray-800 mb-2">Start Splitting</h2>
-          <p className="text-gray-500 mb-4 text-sm">You’re now ready to manage expenses!</p>
+          <p className="text-gray-500 mb-4 text-sm">You're now ready to manage expenses!</p>
           {groupId ? (
             <>
               <input
@@ -142,37 +163,37 @@ const WelcomePage: React.FC = () => {
         </button>
       </motion.div>
 
-      {/* Add Friend Modal */}
-      {showAddFriend && (
-        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-xl shadow-lg w-80">
-            <h3 className="text-lg font-bold text-gray-800 mb-3">Add a Friend</h3>
-            <input
-              type="text"
-              value={friendInput}
-              onChange={(e) => setFriendInput(e.target.value)}
-              placeholder="Email or username"
-              className="w-full px-3 py-2 border border-gray-300 rounded mb-4"
-            />
-            <div className="flex justify-end gap-2">
-              <button
-                onClick={() => setShowAddFriend(false)}
-                className="bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleAddFriend}
-                className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
-              >
-                Add
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Add Friend Modal (Reusable Component) */}
+      <AddFriendModal
+        isOpen={showAddFriend}
+        onClose={() => setShowAddFriend(false)}
+        onAdd={async (receiverId: string) => {
+          if (!userId) {
+            toast.error('User ID not found.');
+            throw new Error('No user ID');
+          }
 
-      {/* ✅ Reusable Create Group Modal */}
+          const result = await sendFriendRequest({ senderId: userId, receiverId });
+          if (!result.success) {
+            // Handle specific error types
+            if (result.error === 'Friend request already pending') {
+              toast.error('Friend request is already pending.');
+            } else {
+              toast.error(result.error || 'Failed to send friend request.');
+            }
+            throw new Error(result.error);
+          }
+          
+          toast.success('Friend request sent successfully!');
+          return result.data;
+        }}
+        onFriendAdded={() => {
+          // Optional: refresh state if needed
+          console.log('Friend added');
+        }}
+      />
+
+      {/* Create Group Modal */}
       <CreateGroupModal isOpen={showCreateGroup} onClose={() => setShowCreateGroup(false)} />
     </div>
   );
