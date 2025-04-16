@@ -12,25 +12,27 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const location = useLocation();
 
   useEffect(() => {
-    // Check authentication on mount and when the location changes
-    const validateAuth = async () => {
-      // Skip validation if we're already redirecting to login
-      if (location.pathname === '/login') return;
-      
-      const isValid = await checkAuth();
-      if (!isValid && !isLoading) {
-        // Only show the toast if we're not already on the login page
-        const isLogoutAction = sessionStorage.getItem('isLogoutAction') === 'true';
-        if (!isLogoutAction) {
-          toast.error('Please log in to access this page');
-        }
-      }
-    };
+    // This effect is primarily for handling the case where auth state might change
+    // *after* initial load, or to trigger the initial check if needed.
+    // However, the main rendering logic below handles the immediate display/redirect.
     
-    validateAuth();
-  }, [location.pathname, checkAuth, isLoading]);
+    // Trigger a check if not loading and not authenticated, just to be sure,
+    // especially if the component mounts without AuthProvider having finished its initial check.
+    if (!isLoading && !isAuthenticated && location.pathname !== '/login') {
+      checkAuth().then(isValid => {
+        if (!isValid) {
+          const isLogoutAction = sessionStorage.getItem('isLogoutAction') === 'true';
+          if (!isLogoutAction) {
+            toast.error('Please log in to access this page');
+          }
+        }
+      });
+    }
+  }, [isLoading, isAuthenticated, location.pathname, checkAuth]);
 
-  // If loading, show nothing (or a loading spinner if you prefer)
+  // 1. Handle Loading State:
+  // If the authentication check is in progress (initial load or subsequent check),
+  // show the loading spinner.
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -39,12 +41,20 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     );
   }
 
-  // Only redirect when loading is complete and user is not authenticated
-  if (!isLoading && !isAuthenticated) {
-    return <Navigate to="/login" replace />;
+  // 2. Handle Not Authenticated State (After Loading):
+  // If loading is finished and the user is NOT authenticated, redirect to login.
+  if (!isAuthenticated) {
+    // Only redirect if not already on the login page to prevent loops.
+    if (location.pathname !== '/login') {
+      return <Navigate to="/login" state={{ from: location }} replace />;
+    }
+    // If already on login page and not authenticated, allow login page to render
+    // This case might not be hit if App.tsx routes login outside ProtectedRoute, which is typical.
+    return null; 
   }
 
-  // If authenticated, render the protected component
+  // 3. Handle Authenticated State (After Loading):
+  // If loading is finished and the user IS authenticated, render the child component.
   return <>{children}</>;
 };
 

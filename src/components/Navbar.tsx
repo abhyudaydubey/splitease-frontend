@@ -18,7 +18,7 @@ const Navbar: React.FC<NavbarProps> = ({ currency, setCurrency, currencySymbols 
   const [loading, setLoading] = useState(false);
   
   const dropdownRef = useRef<HTMLDivElement | null>(null);
-  const friendRequestButtonRef = useRef<HTMLButtonElement>(null);
+  const friendRequestButtonRef = useRef<HTMLButtonElement | null>(null);
   const navigate = useNavigate();
   const { logout, userInfo } = useAuth();
 
@@ -122,13 +122,14 @@ const Navbar: React.FC<NavbarProps> = ({ currency, setCurrency, currencySymbols 
   };
 
   return (
-    <header className="flex items-center justify-between p-4 border-b border-gray-200 bg-white z-10 relative">
+    <header className="flex items-center justify-between px-6 py-4 border-b border-gray-300 bg-white z-10 relative shadow-sm rounded-lg">
       <h1 className="text-xl font-semibold">Dashboard</h1>
 
       <div className="flex items-center gap-4">
         {/* Friend Requests Button with Notification Badge */}
         <button 
           ref={friendRequestButtonRef}
+          title="Friend Requests"
           className="relative p-2 text-gray-500 hover:text-indigo-500 transition-colors"
           onClick={() => setShowFriendRequestsModal(true)}
         >
@@ -158,6 +159,7 @@ const Navbar: React.FC<NavbarProps> = ({ currency, setCurrency, currencySymbols 
         {/* Profile dropdown */}
         <div className="relative" ref={dropdownRef}>
           <button
+            title="Profile & Settings"
             className="flex items-center gap-2 rounded-full focus:outline-none"
             onClick={() => setIsDropdownOpen((prev) => !prev)}
           >
@@ -166,7 +168,8 @@ const Navbar: React.FC<NavbarProps> = ({ currency, setCurrency, currencySymbols 
               {loading ? '...' : getInitials()}
             </div>
             
-            {/* Username display - only show on larger screens */}
+            {/* Username display removed */}
+            {/* 
             {userInfo && (
               <span className="hidden md:flex items-center">
                 <span className="text-sm font-medium text-gray-700 mr-1">{userInfo.username}</span>
@@ -175,6 +178,7 @@ const Navbar: React.FC<NavbarProps> = ({ currency, setCurrency, currencySymbols 
                 </svg>
               </span>
             )}
+            */}
           </button>
 
           {isDropdownOpen && (
