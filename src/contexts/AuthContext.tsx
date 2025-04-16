@@ -138,10 +138,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       console.error('Invalid token:', error);
       await logout();
       return false;
+    } finally {
+      // Always ensure isLoading is set to false after auth check completes
+      setIsLoading(false);
     }
   };
 
   const login = async (token: string) => {
+    setIsLoading(true);
     localStorage.setItem('token', token);
     
     try {
@@ -159,6 +163,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setIsAuthenticated(false);
       setUserId(null);
       setUserInfo(null);
+    } finally {
+      setIsLoading(false);
     }
   };
 
