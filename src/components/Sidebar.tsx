@@ -1,13 +1,24 @@
 import React from 'react';
+// Import the Group type and motion from framer-motion
+import { Group } from '../utils/api.util'; 
+import { motion } from 'framer-motion';
 
 interface SidebarProps {
   currency: string;
   totalAmount: number;
   isOwed: boolean;
-  recentGroups: { name: string; iconId?: string | null }[];
+  // Replace recentGroups with actual group state
+  // recentGroups: { name: string; iconId?: string | null }[];
+  groups: Group[] | null;
+  groupsLoading: boolean;
+  groupsError: string | null;
+  // Keep recentFriends for now
   recentFriends: { name: string; amount: number }[];
   currencySymbols: Record<string, string>;
   onCreateGroup: () => void;
+  // New props for animation
+  newGroupId?: string | null;
+  newGroupItemVariants?: Record<string, any>;
 }
 
 // Map icon IDs to SVG elements (or components)
@@ -24,16 +35,26 @@ const Sidebar: React.FC<SidebarProps> = ({
   currency,
   totalAmount,
   isOwed,
-  recentGroups,
+  // Destructure new group props
+  groups,
+  groupsLoading,
+  groupsError,
   recentFriends,
   currencySymbols,
   onCreateGroup,
+  // Destructure new animation props with defaults
+  newGroupId = null,
+  newGroupItemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0 }
+  }
 }) => {
   return (
     <aside className="w-72 bg-gray-100 border-r border-gray-200 p-5 hidden md:flex flex-col">
       <div className="text-2xl font-bold tracking-tight text-gray-900 mb-6 pt-1">Splitease</div>
 
-      <div className="flex-1 space-y-5 overflow-y-auto flex flex-col">
+      {/* Make the main content area scrollable if sidebar itself gets too tall */}
+      <div className="flex-1 space-y-5 overflow-y-auto flex flex-col min-h-0 pr-1">
 
         <div className="bg-white rounded-lg p-4 border border-gray-300 shadow-md flex-shrink-0">
           <div className="flex items-center justify-between mb-2">
@@ -68,24 +89,84 @@ const Sidebar: React.FC<SidebarProps> = ({
             </span>
             GROUPS
           </h3>
-          <div className="overflow-y-auto flex-grow pr-1 mb-3">
-            <ul className="space-y-1 text-gray-700">
-              {recentGroups.map((group, idx) => {
-                // Get the specific icon based on group.iconId, or use default
-                const iconToRender = group.iconId ? groupIconMap[group.iconId] : defaultIcon;
-                return (
-                  <li key={idx} className="flex items-center text-sm p-2 rounded-md bg-slate-200 cursor-pointer font-medium">
-                    {/* Render the selected/default icon */}
-                    {iconToRender || defaultIcon} 
-                    <span className="truncate">{group.name}</span>
-                  </li>
-                );
-              })}
-              {recentGroups.length === 0 && (
-                <li className="text-sm text-gray-400 italic px-2 py-1">No groups yet.</li>
-              )}
-            </ul>
+          {/* Scrollable container for the list */}
+          <div className="overflow-y-auto flex-grow mb-3 max-h-60 pr-1"> 
+            {groupsLoading ? (
+              <p className="text-sm text-gray-500 px-2 py-1">Loading groups...</p>
+            ) : groupsError ? (
+              <p className="text-sm text-red-600 px-2 py-1">Error: {groupsError}</p>
+            ) : groups && groups.length > 0 ? (
+              <ul className="space-y-1 text-gray-700">
+                {groups.map((group) => {
+                  // Get the specific icon based on group.iconId, or use default
+                  const iconToRender = group.iconId ? groupIconMap[group.iconId] : defaultIcon;
+                  // Determine text color based on group status/balance
+                  let balanceColor = 'text-gray-700'; // Default
+                  let balancePrefix = '';
+                  if (group.status === 'owe') {
+                    balanceColor = 'text-red-600';
+                    balancePrefix = '-';
+                  } else if (group.status === 'owed') {
+                    balanceColor = 'text-green-600';
+                    balancePrefix = '+';
+                  } // 'settled up' or other statuses remain default gray
+
+                  // Check if this is the newly added group
+                  const isNewGroup = newGroupId === group.id;
+
+                  // Wrap with motion.li if it's the new group
+                  return isNewGroup ? (
+                    <motion.li 
+                      key={group.id}
+                      initial="hidden"
+                      animate="visible"
+                      variants={newGroupItemVariants}
+                      className="flex items-center justify-between text-sm p-2 rounded-md hover:bg-slate-100 cursor-pointer font-medium"
+                      style={{ backgroundColor: '#f0f9ff' }} // Light blue highlight for the new group
+                    >
+                      <div className="flex items-center overflow-hidden mr-2">
+                        {iconToRender || defaultIcon} 
+                        <span className="truncate ml-1">{group.name}</span>
+                      </div>
+                      {group.status !== 'settled up' && group.amount !== 0 && (
+                        <span className={`font-medium text-xs flex-shrink-0 ${balanceColor}`}>
+                          {balancePrefix}{currencySymbols[currency]}{Math.abs(group.amount).toLocaleString()}
+                        </span>
+                      )}
+                      {group.status === 'settled up' && (
+                        <span className="font-medium text-xs text-gray-400 flex-shrink-0">
+                          Settled up
+                        </span>
+                      )}
+                    </motion.li>
+                  ) : (
+                    <li 
+                      key={group.id}
+                      className="flex items-center justify-between text-sm p-2 rounded-md hover:bg-slate-100 cursor-pointer font-medium"
+                    >
+                      <div className="flex items-center overflow-hidden mr-2">
+                        {iconToRender || defaultIcon} 
+                        <span className="truncate ml-1">{group.name}</span>
+                      </div>
+                      {group.status !== 'settled up' && group.amount !== 0 && (
+                        <span className={`font-medium text-xs flex-shrink-0 ${balanceColor}`}>
+                          {balancePrefix}{currencySymbols[currency]}{Math.abs(group.amount).toLocaleString()}
+                        </span>
+                      )}
+                      {group.status === 'settled up' && (
+                        <span className="font-medium text-xs text-gray-400 flex-shrink-0">
+                          Settled up
+                        </span>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : (
+              <p className="text-sm text-gray-400 italic px-2 py-1">No groups yet.</p>
+            )}
           </div>
+          {/* Create Group Button */}
           <button 
             onClick={onCreateGroup} 
             className="flex-shrink-0 w-full mt-auto flex items-center justify-center px-3 py-2 text-sm font-medium rounded-md text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-gray-300"

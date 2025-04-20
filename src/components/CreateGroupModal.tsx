@@ -16,7 +16,7 @@ const defaultGroupIcons = [
 interface CreateGroupModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onGroupCreated?: () => void;
+  onGroupCreated?: (newGroup?: any) => void;
 }
 
 const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ isOpen, onClose, onGroupCreated }) => {
@@ -57,7 +57,7 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ isOpen, onClose, on
         name: name.trim(), 
         description: description.trim() || '', 
         userId,
-        iconId: selectedIcon
+        iconId: null
       });
       
       if (!result.success) {
@@ -67,7 +67,7 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ isOpen, onClose, on
       }
       
       toast.success('Group created successfully!');
-      onGroupCreated?.();
+      onGroupCreated?.(result.data);
       handleClose();
     } catch (error: any) {
       console.error('Error creating group:', error);

@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Sidebar from '../components/Sidebar';
 import Navbar from '../components/Navbar';
 import CreateGroupModal from '../components/CreateGroupModal';
 import AddFriendModal from '../components/AddFriendModal';
 import { toast } from 'react-hot-toast';
-import { sendFriendRequest, searchUsers, createGroup } from '../utils/api.util';
+import { sendFriendRequest, searchUsers, createGroup, getAllGroups, Group } from '../utils/api.util';
 import { useAuth } from '../contexts/AuthContext';
 
 // --- Dashboard Animation Variants ---
@@ -84,14 +84,41 @@ const tabContentVariants = {
   exit: { opacity: 0, y: -10, transition: { duration: 0.2, ease: 'easeInOut' } },
 };
 
+// Animation for new group item appearing
+const newGroupItemVariants = {
+  hidden: { 
+    opacity: 0, 
+    y: 20,
+    scale: 0.95
+  },
+  visible: { 
+    opacity: 1, 
+    y: 0,
+    scale: 1,
+    transition: {
+      duration: 0.5,
+      ease: "easeOut"
+    }
+  }
+};
+
 // --- End of Dashboard Variants ---
 
 const Dashboard: React.FC = () => {
   const [currency, setCurrency] = useState('INR');
   const [showGroupModal, setShowGroupModal] = useState(false);
   const [showAddFriendModal, setShowAddFriendModal] = useState(false);
-  const { userId, isLoading } = useAuth();
+  const { userId, isLoading: authLoading } = useAuth();
   const [activeTab, setActiveTab] = useState<'Overview' | 'Expenses' | 'Balances'>('Overview');
+
+  // State for groups
+  const [groups, setGroups] = useState<Group[] | null>(null);
+  const [groupsLoading, setGroupsLoading] = useState<boolean>(true);
+  const [groupsError, setGroupsError] = useState<string | null>(null);
+  // Track if we're refreshing in the background (not showing loading state)
+  const [isBackgroundRefreshing, setIsBackgroundRefreshing] = useState<boolean>(false);
+  // Track the ID of the most recently added group for animation
+  const [newGroupId, setNewGroupId] = useState<string | null>(null);
 
   const currencySymbols: Record<string, string> = {
     INR: '₹',
@@ -103,12 +130,6 @@ const Dashboard: React.FC = () => {
   // Dummy data (replace with actual API later)
   const totalAmount = 1320;
   const isOwed = true;
-  const recentGroups = [
-    { name: 'Goa Trip', iconId: 'gift' }, 
-    { name: 'College Buddies', iconId: 'users' }, 
-    { name: 'Flatmates', iconId: 'home' },
-    { name: 'Office Lunch', iconId: 'briefcase' }
-  ];
   const recentFriends = [
     { name: 'Riya', amount: 500 },
     { name: 'Aman', amount: -200 },
@@ -119,8 +140,118 @@ const Dashboard: React.FC = () => {
   const usersOwedTo = [{ name: 'Alice', amount: 350 }, { name: 'Bob', amount: 120 }];
   const usersOwedBy = [{ name: 'Charlie', amount: 80 }];
 
-  // Show a loading spinner based on the AuthContext's loading state
-  if (isLoading) {
+  // Function to fetch all groups (shows loading state)
+  const fetchGroups = useCallback(async () => {
+    // Don't fetch if already refreshing in background 
+    if (isBackgroundRefreshing) return;
+    
+    setGroupsLoading(true);
+    setGroupsError(null);
+    try {
+      const result = await getAllGroups();
+      if (result.success && result.data) {
+        setGroups(result.data.groups);
+        // Reset new group ID after loading all groups
+        setNewGroupId(null);
+        // Potentially update totalAmount and isOwed based on result.data.overallBalance here
+        // setTotalAmount(Math.abs(result.data.overallBalance));
+        // setIsOwed(result.data.overallBalance >= 0);
+      } else {
+        setGroupsError(result.error || 'Failed to fetch groups.');
+        toast.error(result.error || 'Could not load groups.');
+      }
+    } catch (error) {
+      console.error("Error fetching groups:", error);
+      const message = error instanceof Error ? error.message : 'An unknown error occurred.';
+      setGroupsError(message);
+      toast.error(`Error loading groups: ${message}`);
+    } finally {
+      setGroupsLoading(false);
+    }
+  }, [isBackgroundRefreshing]);
+  
+  // Background refresh function (doesn't show loading state, keeps existing data)
+  const refreshGroupsInBackground = useCallback(async () => {
+    if (isBackgroundRefreshing) return; // Prevent multiple simultaneous refreshes
+    
+    setIsBackgroundRefreshing(true);
+    try {
+      const result = await getAllGroups();
+      if (result.success && result.data) {
+        setGroups(result.data.groups);
+        // Keep newGroupId for a moment longer for animation
+        setTimeout(() => {
+          setNewGroupId(null);
+        }, 2000); // Clear newGroupId after 2 seconds
+      } else {
+        console.error("Background refresh failed:", result.error);
+        // Don't show error toast for background refresh failures
+      }
+    } catch (error) {
+      console.error("Error in background refresh:", error);
+    } finally {
+      setIsBackgroundRefreshing(false);
+    }
+  }, [isBackgroundRefreshing]); // Only depends on isBackgroundRefreshing
+  
+  // Handle optimistic group creation
+  const handleGroupCreated = useCallback((newGroupData: any) => {
+    // Only perform optimistic update if we already have groups loaded
+    if (groups) {
+      // Format the new group to match the Group interface
+      const newGroup: Group = {
+        id: newGroupData.id,
+        name: newGroupData.name,
+        totalBalance: 0, // Start with default values
+        status: 'settled up',
+        amount: 0,
+        balances: [],
+        members: [{ id: userId }], // Add current user as a member
+        iconId: newGroupData.iconId || 'users' // Default icon
+      };
+      
+      // Add the new group to the existing list
+      setGroups(prevGroups => {
+        if (!prevGroups) return [newGroup];
+        return [...prevGroups, newGroup];
+      });
+      
+      // Set the newly added group ID for animation
+      setNewGroupId(newGroup.id);
+      
+      // Refresh in background to get accurate data
+      refreshGroupsInBackground();
+    } else {
+      // If no groups loaded yet, just do a normal fetch
+      fetchGroups();
+    }
+  }, [groups, userId, fetchGroups, refreshGroupsInBackground]);
+  
+  // Fetch groups on component mount
+  useEffect(() => {
+    let mounted = true;
+    
+    const loadGroups = async () => {
+      await fetchGroups();
+      // Only clear newGroupId if component is still mounted
+      if (mounted) {
+        // Give some time for animation to complete if there was a new group
+        setTimeout(() => {
+          if (mounted) setNewGroupId(null);
+        }, 2000);
+      }
+    };
+    
+    loadGroups();
+    
+    // Cleanup function to prevent state updates on unmounted component
+    return () => {
+      mounted = false;
+    };
+  }, [fetchGroups]); // Now depend on fetchGroups
+
+  // Show a loading spinner based on the AuthContext's loading state OR groups loading
+  if (authLoading) { // Still prioritize auth loading
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="w-12 h-12 border-4 border-gray-300 border-t-indigo-500 rounded-full animate-spin"></div>
@@ -251,10 +382,14 @@ const Dashboard: React.FC = () => {
         currency={currency}
         totalAmount={totalAmount}
         isOwed={isOwed}
-        recentGroups={recentGroups}
+        groups={groups}
+        groupsLoading={groupsLoading}
+        groupsError={groupsError}
         recentFriends={recentFriends}
         currencySymbols={currencySymbols}
         onCreateGroup={handleCreateGroup}
+        newGroupId={newGroupId} // Pass the newGroupId for animation
+        newGroupItemVariants={newGroupItemVariants} // Pass animation variants
       />
 
       <div className="flex-1 flex flex-col">
@@ -321,10 +456,11 @@ const Dashboard: React.FC = () => {
       {/* Modals */}
       <AnimatePresence>
         {showGroupModal && (
-      <CreateGroupModal
-        isOpen={showGroupModal}
-        onClose={() => setShowGroupModal(false)}
-      />
+          <CreateGroupModal
+            isOpen={showGroupModal}
+            onClose={() => setShowGroupModal(false)}
+            onGroupCreated={handleGroupCreated}
+          />
         )}
 
         {showAddFriendModal && (
