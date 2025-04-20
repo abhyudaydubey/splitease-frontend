@@ -9,9 +9,15 @@ interface NavbarProps {
   currency: string;
   setCurrency: (currency: string) => void;
   currencySymbols: Record<string, string>;
+  onAddFriend: () => void;
 }
 
-const Navbar: React.FC<NavbarProps> = ({ currency, setCurrency, currencySymbols }) => {
+const Navbar: React.FC<NavbarProps> = ({
+  currency,
+  setCurrency,
+  currencySymbols,
+  onAddFriend,
+}) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [showFriendRequestsModal, setShowFriendRequestsModal] = useState(false);
   const [friendRequestCount, setFriendRequestCount] = useState(0);
@@ -123,22 +129,35 @@ const Navbar: React.FC<NavbarProps> = ({ currency, setCurrency, currencySymbols 
 
   return (
     <header className="flex items-center justify-between px-6 py-4 border-b border-gray-300 bg-white z-10 relative shadow-sm rounded-lg">
-      <h1 className="text-xl font-semibold">Dashboard</h1>
+      <h1 className="text-xl font-semibold text-gray-800">Dashboard</h1>
 
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3">
+        {/* Add Friend Text Button - Icon Added Back */}
+         <button 
+           title="Add Friend"
+           onClick={onAddFriend}
+           className="flex items-center px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-gray-400"
+         >
+            {/* Heroicons v2 User Plus (Outline) - Applied */}
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 mr-1.5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zM4 19.235v-.11a6.375 6.375 0 0112.75 0v.109A12.318 12.318 0 0110.374 21c-2.331 0-4.512-.645-6.374-1.766z" />
+            </svg>
+           Add Friend
+         </button>
+
         {/* Friend Requests Button with Notification Badge */}
         <button 
           ref={friendRequestButtonRef}
           title="Friend Requests"
-          className="relative p-2 text-gray-500 hover:text-indigo-500 transition-colors"
+          className="relative p-2 text-gray-500 hover:text-gray-800 transition-colors rounded-full hover:bg-gray-100"
           onClick={() => setShowFriendRequestsModal(true)}
         >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
           </svg>
           
           {friendRequestCount > 0 && (
-            <span className="absolute top-0 right-0 bg-red-500 text-white w-5 h-5 flex items-center justify-center rounded-full text-xs font-medium">
+            <span className="absolute top-0 right-0 bg-red-500 text-white w-4 h-4 flex items-center justify-center rounded-full text-[10px] font-medium">
               {friendRequestCount > 9 ? '9+' : friendRequestCount}
             </span>
           )}
