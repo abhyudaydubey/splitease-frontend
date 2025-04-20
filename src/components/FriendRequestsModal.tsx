@@ -20,7 +20,7 @@ interface FriendRequestsModalProps {
   isOpen: boolean;
   onClose: () => void;
   onRequestHandled?: () => void;
-  buttonRef: React.RefObject<HTMLButtonElement>;
+  buttonRef: React.RefObject<HTMLButtonElement | null>;
 }
 
 const ITEMS_PER_PAGE = 5;

@@ -76,6 +76,7 @@ const WelcomePage: React.FC = () => {
   const [searchError, setSearchError] = useState('');
   const [groupId, setGroupId] = useState<string | null>(null);
   const [newMember, setNewMember] = useState('');
+  const [shouldNavigate, setShouldNavigate] = useState(false);
 
   const debouncedSearch = useCallback(
     debounce(async (query: string) => {
@@ -104,9 +105,22 @@ const WelcomePage: React.FC = () => {
     debouncedSearch(searchQuery);
   }, [searchQuery, debouncedSearch]);
 
-  const handleSkip = () => {
+  const handleOnboardingActionComplete = () => {
     localStorage.setItem('hasOnboarded', 'true');
-    navigate('/dashboard');
+    setShouldNavigate(true);
+  };
+
+  useEffect(() => {
+    if (shouldNavigate) {
+      const timer = setTimeout(() => {
+         navigate('/dashboard');
+      }, 150);
+      return () => clearTimeout(timer);
+    }
+  }, [shouldNavigate, navigate]);
+
+  const handleSkip = () => {
+    handleOnboardingActionComplete();
   };
 
   const handleAddMember = async () => {
@@ -269,11 +283,8 @@ const WelcomePage: React.FC = () => {
               }
               
               toast.success('Friend request sent successfully!');
+              handleOnboardingActionComplete();
               return result.data;
-            }}
-            onFriendAdded={() => {
-              // Optional: refresh state if needed
-              console.log('Friend added');
             }}
           />
         )}
@@ -281,7 +292,11 @@ const WelcomePage: React.FC = () => {
 
       <AnimatePresence>
         {showCreateGroup && (
-          <CreateGroupModal isOpen={showCreateGroup} onClose={() => setShowCreateGroup(false)} />
+          <CreateGroupModal 
+            isOpen={showCreateGroup} 
+            onClose={() => setShowCreateGroup(false)} 
+            onGroupCreated={handleOnboardingActionComplete}
+          />
         )}
       </AnimatePresence>
     </motion.div>

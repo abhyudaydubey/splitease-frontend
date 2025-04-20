@@ -7,6 +7,7 @@ interface SidebarProps {
   recentGroups: { name: string; iconId?: string | null }[];
   recentFriends: { name: string; amount: number }[];
   currencySymbols: Record<string, string>;
+  onCreateGroup: () => void;
 }
 
 // Map icon IDs to SVG elements (or components)
@@ -26,6 +27,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   recentGroups,
   recentFriends,
   currencySymbols,
+  onCreateGroup,
 }) => {
   return (
     <aside className="w-72 bg-gray-100 border-r border-gray-200 p-5 hidden md:flex flex-col">
@@ -66,7 +68,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             </span>
             GROUPS
           </h3>
-          <div className="overflow-y-auto flex-grow pr-1">
+          <div className="overflow-y-auto flex-grow pr-1 mb-3">
             <ul className="space-y-1 text-gray-700">
               {recentGroups.map((group, idx) => {
                 // Get the specific icon based on group.iconId, or use default
@@ -84,6 +86,15 @@ const Sidebar: React.FC<SidebarProps> = ({
               )}
             </ul>
           </div>
+          <button 
+            onClick={onCreateGroup} 
+            className="flex-shrink-0 w-full mt-auto flex items-center justify-center px-3 py-2 text-sm font-medium rounded-md text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-gray-300"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 mr-1.5">
+              <path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
+            </svg>
+            Create Group
+          </button>
         </div>
 
         <div className="bg-white rounded-lg p-4 border border-gray-300 shadow-md flex-shrink-0">
