@@ -10,6 +10,8 @@ interface NavbarProps {
   setCurrency: (currency: string) => void;
   currencySymbols: Record<string, string>;
   onAddFriend: () => void;
+  onProfileDropdownToggle?: (isOpen: boolean) => void;
+  onFriendRequestsModalToggle?: (isOpen: boolean) => void;
 }
 
 const Navbar: React.FC<NavbarProps> = ({
@@ -17,6 +19,8 @@ const Navbar: React.FC<NavbarProps> = ({
   setCurrency,
   currencySymbols,
   onAddFriend,
+  onProfileDropdownToggle,
+  onFriendRequestsModalToggle,
 }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [showFriendRequestsModal, setShowFriendRequestsModal] = useState(false);
@@ -71,6 +75,16 @@ const Navbar: React.FC<NavbarProps> = ({
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Update parent when dropdown state changes
+  useEffect(() => {
+    onProfileDropdownToggle?.(isDropdownOpen);
+  }, [isDropdownOpen, onProfileDropdownToggle]);
+
+  // Notify parent when friend requests modal state changes
+  useEffect(() => {
+    onFriendRequestsModalToggle?.(showFriendRequestsModal);
+  }, [showFriendRequestsModal, onFriendRequestsModalToggle]);
 
   const handleLogout = () => {
     // Set a flag to indicate this is a logout action
@@ -128,7 +142,7 @@ const Navbar: React.FC<NavbarProps> = ({
   };
 
   return (
-    <header className="flex items-center justify-between px-6 py-4 border-b border-gray-300 bg-white z-10 relative shadow-sm rounded-lg">
+    <header className="flex items-center justify-between px-6 py-4 border-b border-gray-300 bg-white z-20 relative shadow-sm rounded-lg">
       <h1 className="text-xl font-semibold text-gray-800">Dashboard</h1>
 
       <div className="flex items-center gap-3">
@@ -201,7 +215,7 @@ const Navbar: React.FC<NavbarProps> = ({
           </button>
 
           {isDropdownOpen && (
-            <div className="absolute right-0 mt-2 w-64 bg-white border border-gray-200 rounded-lg shadow-xl py-2 text-sm z-20">
+            <div className="absolute right-0 mt-2 w-64 bg-white border border-gray-200 rounded-lg shadow-xl py-2 text-sm z-50">
               {userInfo && (
                 <div className="px-4 py-2 border-b border-gray-100">
                   <div className="font-medium text-gray-800">{userInfo.username}</div>

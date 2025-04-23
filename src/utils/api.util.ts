@@ -70,17 +70,30 @@ export const sendFriendRequest = async ({
 
 // Fetch Pending Friend Requests
 export const fetchPendingFriendRequests = async () => {
+  const token = getToken();
+  if (!token) {
+    return { success: false, error: 'Authentication token not found.' };
+  }
+
   try {
-    const response = await api.get('/friends/requests/pending');
-    return { success: true, data: response.data };
-  } catch (error: any) {
-    if (error.response && error.response.data) {
-      return { 
-        success: false, 
-        error: error.response.data.error || 'Failed to fetch friend requests' 
-      };
+    const response = await fetch(`${BASE_URL}/friends/pending`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ error: 'Failed to fetch friend requests' }));
+      return { success: false, error: errorData.error || `HTTP error! status: ${response.status}` };
     }
-    return { success: false, error: 'Failed to fetch friend requests' };
+
+    const data = await response.json();
+    return { success: true, data };
+  } catch (error: any) {
+    console.error('Error fetching friend requests:', error);
+    return { success: false, error: error.message || 'Failed to fetch friend requests' };
   }
 };
 
@@ -270,6 +283,53 @@ export const createGroup = async (payload: CreateGroupPayload): Promise<{ succes
         toast.error(errorMessage);
         return { success: false, error: errorMessage };
     }
+};
+
+// Get Friends List
+export interface Friend {
+  id: string;
+  name: string;
+  username: string;
+  email: string;
+  amount: number;
+}
+
+interface GetFriendsListResponse {
+  friends: Friend[];
+}
+
+export const getFriendsList = async (): Promise<Friend[]> => {
+  try {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      throw new Error('No token found');
+    }
+
+    const response = await axios.get(
+      `${BASE_URL}/friends/list`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (response.status !== 200) {
+      throw new Error('Failed to fetch friends list');
+    }
+
+    return response.data.map((friend: any) => ({
+      id: friend.id,
+      name: friend.username, // Using username as name
+      username: friend.username,
+      email: friend.email,
+      amount: 0, // Default amount to 0 since it's not in the response
+    }));
+  } catch (error: any) {
+    console.error('Error fetching friends list:', error);
+    toast.error('Failed to fetch friends list');
+    return [];
+  }
 };
 
 export default api;
