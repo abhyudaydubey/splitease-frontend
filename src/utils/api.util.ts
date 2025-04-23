@@ -333,3 +333,51 @@ export const getFriendsList = async (): Promise<Friend[]> => {
 };
 
 export default api;
+
+// Interface for the detailed group response
+export interface GroupDetails {
+  id: string;
+  name: string;
+  totalBalance: number;
+  balanceText: string;
+  individualBalances: any[];
+  expensesByMonth: Record<string, any>;
+  members: {
+    id: string;
+    username: string;
+  }[];
+}
+
+/**
+ * Fetches details for a specific group
+ * @param groupId - The ID of the group to fetch
+ */
+export const getGroupDetails = async (groupId: string): Promise<{ success: boolean; data?: GroupDetails; error?: string }> => {
+  const token = getToken();
+  if (!token) {
+    return { success: false, error: 'Authentication token not found.' };
+  }
+
+  try {
+    const response = await fetch(`${BASE_URL}/groups/${groupId}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: 'Failed to fetch group details' }));
+      console.error('Failed to fetch group details:', response.status, errorData);
+      return { success: false, error: errorData.message || `HTTP error! status: ${response.status}` };
+    }
+
+    const data: GroupDetails = await response.json();
+    return { success: true, data };
+
+  } catch (error: any) {
+    console.error('Error fetching group details:', error);
+    return { success: false, error: error.message || 'An unexpected error occurred while fetching group details.' };
+  }
+};

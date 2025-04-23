@@ -68,6 +68,9 @@ const MainLayout: React.FC<MainLayoutProps> = () => {
     }
   };
   
+  // Check if current page is a group details page
+  const isGroupPage = location.pathname.includes('/groups/') || location.pathname.includes('/g/');
+  
   // Fetch groups function
   const fetchGroups = useCallback(async () => {
     if (isBackgroundRefreshing) return;
@@ -140,8 +143,16 @@ const MainLayout: React.FC<MainLayoutProps> = () => {
       // Set the newly added group ID for animation
       setNewGroupId(newGroup.id);
       
-      // Navigate to the new group
-      navigate(`/groups/${newGroup.id}`);
+      // Create a slug for the group name
+      const nameSlug = newGroup.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+      
+      // Save mapping to localStorage
+      const groupMapping = JSON.parse(localStorage.getItem('groupMapping') || '{}');
+      groupMapping[nameSlug] = newGroup.id;
+      localStorage.setItem('groupMapping', JSON.stringify(groupMapping));
+      
+      // Navigate to the new group with the clean URL
+      navigate(`/g/${nameSlug}`);
       
       // Refresh in background to get accurate data
       refreshGroupsInBackground();
@@ -219,8 +230,8 @@ const MainLayout: React.FC<MainLayoutProps> = () => {
         />
         
         <div className="flex-1 overflow-auto relative">
-          {/* Floating Add Expense Button - Hidden when profile dropdown or friend requests modal is open */}
-          {!isProfileDropdownOpen && !isFriendRequestsModalOpen && (
+          {/* Floating Add Expense Button - Hidden when profile dropdown or friend requests modal is open or on group page */}
+          {!isProfileDropdownOpen && !isFriendRequestsModalOpen && !isGroupPage && (
             <button
               onClick={handleAddExpense}
               title="Add Expense"

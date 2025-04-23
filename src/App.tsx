@@ -7,6 +7,7 @@ import Dashboard from './pages/Dashboard';
 import ProtectedRoute from './components/ProtectedRoute';
 import WelcomePage from './pages/WelcomePage';
 import MainLayout from './components/MainLayout';
+import GroupDetailsPage from './pages/GroupDetailsPage';
 import { AuthProvider } from './contexts/AuthProvider';
 
 function App() {
@@ -22,8 +23,10 @@ function App() {
             {/* MainLayout wraps Dashboard and GroupDetailsPage */}
             <Route element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
               <Route path="/dashboard" element={<Dashboard />} />
-              {/* Add back GroupDetailsPage when it's implemented */}
-              {/* <Route path="/groups/:groupId" element={<GroupDetailsPage />} /> */}
+              {/* Support backward compatibility for old URL format */}
+              <Route path="/groups/:groupId" element={<GroupDetailsPage />} />
+              {/* New clean URL format without showing the ID */}
+              <Route path="/g/:groupName" element={<GroupDetailsPage />} />
             </Route>
             
             <Route path="/" element={<Navigate to="/login" replace />} />

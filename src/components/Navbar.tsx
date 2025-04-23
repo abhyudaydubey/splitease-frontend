@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'react-hot-toast';
 import FriendRequestsModal from './FriendRequestsModal';
-import { fetchPendingFriendRequests } from '../utils/api.util';
+import { fetchPendingFriendRequests, getGroupDetails } from '../utils/api.util';
 
 interface NavbarProps {
   currency: string;
@@ -26,10 +26,12 @@ const Navbar: React.FC<NavbarProps> = ({
   const [showFriendRequestsModal, setShowFriendRequestsModal] = useState(false);
   const [friendRequestCount, setFriendRequestCount] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [pageTitle, setPageTitle] = useState('Dashboard');
   
   const dropdownRef = useRef<HTMLDivElement | null>(null);
   const friendRequestButtonRef = useRef<HTMLButtonElement | null>(null);
   const navigate = useNavigate();
+  const location = useLocation();
   const { logout, userInfo } = useAuth();
 
   // Load friend requests count on component mount and periodically
@@ -85,6 +87,51 @@ const Navbar: React.FC<NavbarProps> = ({
   useEffect(() => {
     onFriendRequestsModalToggle?.(showFriendRequestsModal);
   }, [showFriendRequestsModal, onFriendRequestsModalToggle]);
+
+  // Fetch group name if we're on a group page
+  useEffect(() => {
+    const fetchGroupName = async () => {
+      setPageTitle('Dashboard'); // Default title
+      
+      // Check if we're on a group page using the new URL format
+      if (location.pathname.startsWith('/g/')) {
+        const groupNameMatch = location.pathname.match(/\/g\/([^/]+)/);
+        if (groupNameMatch && groupNameMatch[1]) {
+          const groupSlug = groupNameMatch[1];
+          const groupMapping = JSON.parse(localStorage.getItem('groupMapping') || '{}');
+          const groupId = groupMapping[groupSlug];
+          
+          if (groupId) {
+            try {
+              const result = await getGroupDetails(groupId);
+              if (result.success && result.data) {
+                setPageTitle(result.data.name);
+              }
+            } catch (error) {
+              console.error('Error fetching group details:', error);
+            }
+          }
+        }
+      }
+      // Check if we're on a group page using the old URL format
+      else if (location.pathname.startsWith('/groups/')) {
+        const match = location.pathname.match(/\/groups\/([^/]+)/);
+        if (match && match[1]) {
+          const groupId = match[1];
+          try {
+            const result = await getGroupDetails(groupId);
+            if (result.success && result.data) {
+              setPageTitle(result.data.name);
+            }
+          } catch (error) {
+            console.error('Error fetching group details:', error);
+          }
+        }
+      }
+    };
+    
+    fetchGroupName();
+  }, [location.pathname]);
 
   const handleLogout = () => {
     // Set a flag to indicate this is a logout action
@@ -143,7 +190,9 @@ const Navbar: React.FC<NavbarProps> = ({
 
   return (
     <header className="flex items-center justify-between px-6 py-4 border-b border-gray-300 bg-white z-20 relative shadow-sm rounded-lg">
-      <h1 className="text-xl font-semibold text-gray-800">Dashboard</h1>
+      <div className="flex items-center">
+        <h1 className="text-xl font-semibold text-gray-800">{pageTitle}</h1>
+      </div>
 
       <div className="flex items-center gap-3">
         {/* Add Friend Text Button - Icon Added Back */}

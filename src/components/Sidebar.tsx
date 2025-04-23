@@ -2,6 +2,7 @@ import React from 'react';
 // Import the Group type and motion from framer-motion
 import { Group } from '../utils/api.util'; 
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 
 interface SidebarProps {
   currency: string;
@@ -49,6 +50,22 @@ const Sidebar: React.FC<SidebarProps> = ({
     visible: { opacity: 1, y: 0 }
   }
 }) => {
+  const navigate = useNavigate();
+
+  // Handle group click
+  const handleGroupClick = (groupId: string, groupName: string) => {
+    // Store the groupId in localStorage for later retrieval by name
+    const nameSlug = groupName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    
+    // Save a mapping of group slugs to their IDs
+    const groupMapping = JSON.parse(localStorage.getItem('groupMapping') || '{}');
+    groupMapping[nameSlug] = groupId;
+    localStorage.setItem('groupMapping', JSON.stringify(groupMapping));
+    
+    // Navigate using only the name slug
+    navigate(`/g/${nameSlug}`);
+  };
+
   return (
     <aside className="w-72 bg-gray-100 border-r border-gray-200 p-5 hidden md:flex flex-col">
       <div className="text-2xl font-bold tracking-tight text-gray-900 mb-6 pt-1">Splitease</div>
@@ -123,6 +140,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                       variants={newGroupItemVariants}
                       className="flex items-center justify-between text-sm p-2 rounded-md hover:bg-slate-100 cursor-pointer font-medium"
                       style={{ backgroundColor: '#f0f9ff' }} // Light blue highlight for the new group
+                      onClick={() => handleGroupClick(group.id, group.name)}
                     >
                       <div className="flex items-center overflow-hidden mr-2">
                         {iconToRender || defaultIcon} 
@@ -143,6 +161,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                     <li 
                       key={group.id}
                       className="flex items-center justify-between text-sm p-2 rounded-md hover:bg-slate-100 cursor-pointer font-medium"
+                      onClick={() => handleGroupClick(group.id, group.name)}
                     >
                       <div className="flex items-center overflow-hidden mr-2">
                         {iconToRender || defaultIcon} 
