@@ -187,22 +187,13 @@ const FriendRequestsModal: React.FC<FriendRequestsModalProps> = ({
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Backdrop - transparent near the modal */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/30 z-40"
-            onClick={onClose}
-          />
-          
           {/* Modal */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: -10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: -10 }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="fixed z-50 w-full max-w-md bg-white rounded-xl shadow-xl overflow-hidden"
+            className="fixed z-60 w-full max-w-md bg-white rounded-xl shadow-xl overflow-hidden"
             style={{ 
               top: `${modalPosition.top}px`, 
               right: `${modalPosition.right}px`,
@@ -211,11 +202,11 @@ const FriendRequestsModal: React.FC<FriendRequestsModalProps> = ({
           >
             {/* Arrow pointing to the notification button */}
             <div 
-              className="absolute w-4 h-4 bg-gray-50 rotate-45 transform"
+              className="absolute w-4 h-4 bg-white rotate-45 transform"
               style={{ top: '-8px', right: '19px' }}
             />
             
-            <div className="p-5 bg-gray-50 border-b border-gray-200">
+            <div className="p-5 bg-white border-b border-gray-200">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold text-gray-800">Friend Requests</h3>
                 <button 
@@ -229,7 +220,7 @@ const FriendRequestsModal: React.FC<FriendRequestsModalProps> = ({
               </div>
             </div>
             
-            <div ref={scrollContainerRef} className="p-5 max-h-[60vh] overflow-y-auto">
+            <div ref={scrollContainerRef} className="p-5 max-h-[60vh] overflow-y-auto bg-white">
               {loading ? (
                 <div className="flex justify-center py-6">
                   <div className="w-8 h-8 border-4 border-gray-300 border-t-indigo-500 rounded-full animate-spin"></div>
@@ -246,7 +237,7 @@ const FriendRequestsModal: React.FC<FriendRequestsModalProps> = ({
                   {visibleRequests.map((request, index) => (
                     <motion.div 
                       key={request.id} 
-                      className="p-4 bg-gray-50 border border-gray-200 rounded-lg"
+                      className="p-4 bg-gray-100 border border-gray-200 rounded-lg"
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, height: 0, marginTop: 0, marginBottom: 0, padding: 0 }}
@@ -254,7 +245,7 @@ const FriendRequestsModal: React.FC<FriendRequestsModalProps> = ({
                       ref={index === visibleRequests.length - 1 ? lastItemRef : null}
                     >
                       <div className="flex items-center gap-3">
-                        <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full flex items-center justify-center text-white font-medium">
+                        <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-r from-gray-500 to-gray-700 rounded-full flex items-center justify-center text-white font-medium">
                           {request.sender.username.charAt(0).toUpperCase()}
                         </div>
                         <div className="flex-1 min-w-0">
@@ -267,14 +258,14 @@ const FriendRequestsModal: React.FC<FriendRequestsModalProps> = ({
                         
                         <div className="flex gap-2">
                           <button
-                            className="px-3 py-1.5 bg-gray-200 text-gray-700 rounded text-sm font-medium hover:bg-gray-300 transition disabled:opacity-50"
+                            className="px-3 py-1.5 bg-white border border-gray-300 text-gray-700 rounded text-sm font-medium hover:bg-gray-50 transition disabled:opacity-50"
                             onClick={() => handleRequest(request.id, 'REJECTED')}
                             disabled={processingIds.includes(request.id)}
                           >
                             Reject
                           </button>
                           <button
-                            className="px-3 py-1.5 bg-indigo-500 text-white rounded text-sm font-medium hover:bg-indigo-600 transition disabled:opacity-50"
+                            className="px-3 py-1.5 bg-gray-800 text-white rounded text-sm font-medium hover:bg-gray-700 transition disabled:opacity-50"
                             onClick={() => handleRequest(request.id, 'ACCEPTED')}
                             disabled={processingIds.includes(request.id)}
                           >
@@ -288,7 +279,7 @@ const FriendRequestsModal: React.FC<FriendRequestsModalProps> = ({
                   {/* Loading indicator for infinite scroll */}
                   {loadingMore && (
                     <div className="flex justify-center py-3">
-                      <div className="w-6 h-6 border-3 border-gray-300 border-t-indigo-500 rounded-full animate-spin"></div>
+                      <div className="w-6 h-6 border-3 border-gray-300 border-t-gray-700 rounded-full animate-spin"></div>
                     </div>
                   )}
                 </div>
