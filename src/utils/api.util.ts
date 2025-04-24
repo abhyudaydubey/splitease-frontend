@@ -381,3 +381,75 @@ export const getGroupDetails = async (groupId: string): Promise<{ success: boole
     return { success: false, error: error.message || 'An unexpected error occurred while fetching group details.' };
   }
 };
+
+/**
+ * Adds a member to a group
+ * @param groupId - The ID of the group to add a member to
+ * @param userId - The ID of the user to add to the group
+ */
+export const addMemberToGroup = async (groupId: string, userId: string): Promise<{ success: boolean; data?: any; error?: string }> => {
+  const token = getToken();
+  if (!token) {
+    return { success: false, error: 'Authentication token not found.' };
+  }
+
+  try {
+    const response = await fetch(`${BASE_URL}/groups/${groupId}/add-member`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({ userId, groupId }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: 'Failed to add member to group' }));
+      console.error('Failed to add member:', response.status, errorData);
+      return { success: false, error: errorData.message || `HTTP error! status: ${response.status}` };
+    }
+
+    const data = await response.json();
+    return { success: true, data };
+
+  } catch (error: any) {
+    console.error('Error adding member to group:', error);
+    return { success: false, error: error.message || 'An unexpected error occurred while adding member to group.' };
+  }
+};
+
+/**
+ * Adds multiple members to a group at once
+ * @param groupId - The ID of the group to add members to
+ * @param userIds - Array of user IDs to add to the group
+ */
+export const addMembersToGroup = async (groupId: string, userIds: string[]): Promise<{ success: boolean; data?: any; error?: string }> => {
+  const token = getToken();
+  if (!token) {
+    return { success: false, error: 'Authentication token not found.' };
+  }
+
+  try {
+    const response = await fetch(`${BASE_URL}/groups/${groupId}/add-member`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({ userIds, groupId }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: 'Failed to add members to group' }));
+      console.error('Failed to add members:', response.status, errorData);
+      return { success: false, error: errorData.message || `HTTP error! status: ${response.status}` };
+    }
+
+    const data = await response.json();
+    return { success: true, data };
+
+  } catch (error: any) {
+    console.error('Error adding members to group:', error);
+    return { success: false, error: error.message || 'An unexpected error occurred while adding members to group.' };
+  }
+};
