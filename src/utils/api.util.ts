@@ -453,3 +453,391 @@ export const addMembersToGroup = async (groupId: string, userIds: string[]): Pro
     return { success: false, error: error.message || 'An unexpected error occurred while adding members to group.' };
   }
 };
+
+// Interface for expense creation with the new format
+export interface CreateExpensePayload {
+  description: string;
+  amount: number;
+  groupId: string;
+  paidById: string;
+  splittingType: 'Equal' | 'Ratio' | 'Custom';
+  participantIds?: string[]; // For Equal splitting with selected members
+  ratios?: { userId: string; ratio: number }[]; // For Ratio-based splitting
+  splits?: { userId: string; share: number }[]; // For Custom splitting
+}
+
+/**
+ * Creates a new expense in a group
+ * @param payload - The expense details
+ */
+export const createExpense = async (payload: CreateExpensePayload): Promise<{ success: boolean; data?: any; error?: string }> => {
+  const token = getToken();
+  if (!token) {
+    return { success: false, error: 'Authentication token not found.' };
+  }
+
+  try {
+    const response = await fetch(`${BASE_URL}/expenses/create`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: 'Failed to create expense' }));
+      console.error('Failed to create expense:', response.status, errorData);
+      return { success: false, error: errorData.message || `HTTP error! status: ${response.status}` };
+    }
+
+    const data = await response.json();
+    return { success: true, data };
+
+  } catch (error: any) {
+    console.error('Error creating expense:', error);
+    return { success: false, error: error.message || 'An unexpected error occurred while creating the expense.' };
+  }
+};
+
+// Interface for expense details
+export interface ExpenseDetails {
+  id: string;
+  description: string;
+  amount: number;
+  date: string;
+  paidBy: {
+    id: string;
+    username: string;
+  };
+  splitMethod: 'equal' | 'exact' | 'percentage' | 'shares';
+  splits: {
+    userId: string;
+    username: string;
+    amount: number;
+    percentage: number;
+    shares: number;
+  }[];
+  group: {
+    id: string;
+    name: string;
+  };
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Gets details for a specific expense
+ * @param expenseId - The ID of the expense to fetch
+ */
+export const getExpenseDetails = async (expenseId: string): Promise<{ success: boolean; data?: ExpenseDetails; error?: string }> => {
+  const token = getToken();
+  if (!token) {
+    return { success: false, error: 'Authentication token not found.' };
+  }
+
+  try {
+    const response = await fetch(`${BASE_URL}/expenses/${expenseId}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: 'Failed to fetch expense details' }));
+      console.error('Failed to fetch expense details:', response.status, errorData);
+      return { success: false, error: errorData.message || `HTTP error! status: ${response.status}` };
+    }
+
+    const data: ExpenseDetails = await response.json();
+    return { success: true, data };
+
+  } catch (error: any) {
+    console.error('Error fetching expense details:', error);
+    return { success: false, error: error.message || 'An unexpected error occurred while fetching expense details.' };
+  }
+};
+
+// Group expense summary response interfaces
+export interface ExpenseSummary {
+  group: {
+    id: string;
+    name: string;
+  };
+  summary: {
+    youAreOwed: {
+      userId: string;
+      username: string;
+      amount: number;
+    }[];
+    youOwe: {
+      userId: string;
+      username: string;
+      amount: number;
+    }[];
+    total: number;
+  };
+  expenses: {
+    id: string;
+    description: string;
+    amount: number;
+    date: string;
+    paidBy: {
+      id: string;
+      username: string;
+    };
+    transactionType: string;
+    transactionAmount: number;
+  }[];
+}
+
+/**
+ * Get expense summary for a group
+ * @param groupId - The ID of the group to fetch summary for
+ */
+export const getGroupExpenseSummary = async (groupId: string): Promise<{ success: boolean; data?: ExpenseSummary; error?: string }> => {
+  const token = getToken();
+  if (!token) {
+    return { success: false, error: 'Authentication token not found.' };
+  }
+
+  try {
+    const response = await fetch(`${BASE_URL}/expenses/group/${groupId}/summary`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: 'Failed to fetch expense summary' }));
+      console.error('Failed to fetch expense summary:', response.status, errorData);
+      return { success: false, error: errorData.message || `HTTP error! status: ${response.status}` };
+    }
+
+    const data: ExpenseSummary = await response.json();
+    return { success: true, data };
+
+  } catch (error: any) {
+    console.error('Error fetching expense summary:', error);
+    return { success: false, error: error.message || 'An unexpected error occurred while fetching expense summary.' };
+  }
+};
+
+// Expense detail response interfaces
+export interface ExpenseDetail {
+  expense: {
+    id: string;
+    description: string;
+    amount: number;
+    date: string;
+    group: {
+      id: string;
+      name: string;
+    };
+    paidBy: {
+      id: string;
+      username: string;
+    };
+  };
+  splits: {
+    user: {
+      id: string;
+      username: string;
+    };
+    share: number;
+    relationship: 'paid' | 'you' | 'owes';
+  }[];
+  transactions: {
+    from: {
+      id: string;
+      username: string;
+    };
+    to: {
+      id: string;
+      username: string;
+    };
+    amount: number;
+  }[];
+}
+
+/**
+ * Get detailed view of a specific expense
+ * @param expenseId - The ID of the expense to fetch details for
+ */
+export const getExpenseDetail = async (expenseId: string): Promise<{ success: boolean; data?: ExpenseDetail; error?: string }> => {
+  const token = getToken();
+  if (!token) {
+    return { success: false, error: 'Authentication token not found.' };
+  }
+
+  try {
+    const response = await fetch(`${BASE_URL}/expenses/${expenseId}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: 'Failed to fetch expense details' }));
+      console.error('Failed to fetch expense details:', response.status, errorData);
+      return { success: false, error: errorData.message || `HTTP error! status: ${response.status}` };
+    }
+
+    const data: ExpenseDetail = await response.json();
+    return { success: true, data };
+
+  } catch (error: any) {
+    console.error('Error fetching expense details:', error);
+    return { success: false, error: error.message || 'An unexpected error occurred while fetching expense details.' };
+  }
+};
+
+// Update expense request interface
+export interface UpdateExpensePayload {
+  description: string;
+  amount: number;
+  paidById: string;
+  splittingType: 'Equal' | 'Ratio' | 'Custom';
+  participantIds?: string[]; // For Equal splitting with selected members
+  ratios?: { userId: string; ratio: number }[]; // For Ratio-based splitting
+  splits?: { userId: string; share: number }[]; // For Custom splitting
+}
+
+// Update expense response interface
+export interface UpdateExpenseResponse {
+  message: string;
+  expense: {
+    id: string;
+    description: string;
+    amount: number;
+    paidBy: {
+      id: string;
+      username: string;
+    };
+    splits: {
+      user: {
+        id: string;
+        username: string;
+      };
+      share: number;
+    }[];
+  };
+}
+
+/**
+ * Update an existing expense
+ * @param expenseId - The ID of the expense to update
+ * @param payload - The updated expense data
+ */
+export const updateExpense = async (expenseId: string, payload: UpdateExpensePayload): Promise<{ success: boolean; data?: UpdateExpenseResponse; error?: string }> => {
+  const token = getToken();
+  if (!token) {
+    return { success: false, error: 'Authentication token not found.' };
+  }
+
+  try {
+    const response = await fetch(`${BASE_URL}/expenses/${expenseId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: 'Failed to update expense' }));
+      console.error('Failed to update expense:', response.status, errorData);
+      return { success: false, error: errorData.message || `HTTP error! status: ${response.status}` };
+    }
+
+    const data: UpdateExpenseResponse = await response.json();
+    return { success: true, data };
+
+  } catch (error: any) {
+    console.error('Error updating expense:', error);
+    return { success: false, error: error.message || 'An unexpected error occurred while updating the expense.' };
+  }
+};
+
+/**
+ * Delete an expense
+ * @param expenseId - The ID of the expense to delete
+ */
+export const deleteExpense = async (expenseId: string): Promise<{ success: boolean; message?: string; error?: string }> => {
+  const token = getToken();
+  if (!token) {
+    return { success: false, error: 'Authentication token not found.' };
+  }
+
+  try {
+    const response = await fetch(`${BASE_URL}/expenses/${expenseId}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: 'Failed to delete expense' }));
+      console.error('Failed to delete expense:', response.status, errorData);
+      return { success: false, error: errorData.message || `HTTP error! status: ${response.status}` };
+    }
+
+    const data = await response.json();
+    return { success: true, message: data.message };
+
+  } catch (error: any) {
+    console.error('Error deleting expense:', error);
+    return { success: false, error: error.message || 'An unexpected error occurred while deleting the expense.' };
+  }
+};
+
+/**
+ * Record a settlement between the current user and another user in a group
+ * @param groupId - The ID of the group
+ * @param userId - The ID of the user to settle up with
+ * @param amount - The amount to settle
+ */
+export const settleUpWithUser = async (groupId: string, userId: string, amount: number): Promise<{ success: boolean; message?: string; error?: string }> => {
+  const token = getToken();
+  if (!token) {
+    return { success: false, error: 'Authentication token not found.' };
+  }
+
+  try {
+    const response = await fetch(`${BASE_URL}/expenses/settle`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        groupId,
+        settledWithUserId: userId,
+        amount
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: 'Failed to record settlement' }));
+      console.error('Failed to record settlement:', response.status, errorData);
+      return { success: false, error: errorData.message || `HTTP error! status: ${response.status}` };
+    }
+
+    const data = await response.json();
+    return { success: true, message: data.message || 'Settlement recorded successfully' };
+
+  } catch (error: any) {
+    console.error('Error recording settlement:', error);
+    return { success: false, error: error.message || 'An unexpected error occurred while recording the settlement.' };
+  }
+};

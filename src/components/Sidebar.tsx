@@ -107,7 +107,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             GROUPS
           </h3>
           {/* Scrollable container for the list */}
-          <div className="overflow-y-auto flex-grow mb-3 max-h-60 pr-1"> 
+          <div className="h-[160px] overflow-y-auto pr-2">
             {groupsLoading ? (
               <p className="text-sm text-gray-500 px-2 py-1">Loading groups...</p>
             ) : groupsError ? (
