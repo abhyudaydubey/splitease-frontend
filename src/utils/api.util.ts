@@ -274,7 +274,6 @@ export const createGroup = async (payload: CreateGroupPayload): Promise<{ succes
             return { success: false, error: errorMessage };
         }
         
-        toast.success('Group created successfully!'); // Added success toast here
         return { success: true, data: responseData };
 
     } catch (error: any) {
